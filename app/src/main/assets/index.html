@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>UniSync — Smart Attendance Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root{
+          --bg-1:240 249 255;
+          --bg-2:219 234 254;
+          --surface:255 255 255;
+          --card:239 246 255;
+          --ink:15 23 42;
+          --muted:71 85 105;
+          --accent:59 130 246;
+          --accent-2:37 99 235;
+          --success:34 197 94;
+          --warn:251 191 36;
+          --danger:239 68 68;
+        }
+        .glass{backdrop-filter:blur(12px);background:rgba(255,255,255,.7)}
+        .elevate{box-shadow:0 8px 24px rgba(0,0,0,.08)}
+        .elevate-strong{box-shadow:0 16px 40px rgba(0,0,0,.15)}
+        .animate-press{transition:transform .15s ease, opacity .15s ease}
+        .ripple:active{transform:scale(0.98); opacity:0.9}
+        @keyframes slideInRight{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+        @keyframes slideInLeft{from{transform:translateX(-100%);opacity:0}to{transform:translateX(0);opacity:1}}
+        @keyframes fadeInUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+        .slide-in-right{animation:slideInRight 0.4s ease-out}
+        .slide-in-left{animation:slideInLeft 0.4s ease-out}
+        .fade-in-up{animation:fadeInUp 0.6s ease-out}
+        .fade-in{animation:fadeIn 0.5s ease-out}
+        @keyframes logoGlow{0%,100%{box-shadow:0 0 20px rgba(59,130,246,0.3)}50%{box-shadow:0 0 30px rgba(59,130,246,0.5), 0 0 40px rgba(99,102,241,0.3)}}
+        .logo-glow{animation:logoGlow 3s ease-in-out infinite}
+        @keyframes float{0%,100%{transform:translateY(0px)}50%{transform:translateY(-10px)}}
+        .float{animation:float 3s ease-in-out infinite}
+        @keyframes pulse{0%{transform:scale(1);opacity:0.7}50%{transform:scale(1.05);opacity:1}100%{transform:scale(1);opacity:0.7}}
+        .pulse-slow{animation:pulse 4s ease-in-out infinite}
+        .role-card{transition:all 0.3s ease;transform:scale(1)}
+        .role-card:hover{transform:scale(1.02);box-shadow:0 20px 40px rgba(0,0,0,.12)}
+        .role-card.selected{transform:scale(1.02);box-shadow:0 20px 40px rgba(59,130,246,.2);border-color:rgb(var(--accent-2))}
+        .progress-step{transition:all 0.3s ease}
+        .progress-step.active{background:rgb(var(--accent-2));color:white}
+        .progress-step.completed{background:rgb(var(--success));color:white}
+        .form-field{transition:all 0.2s ease}
+        .form-field:focus-within{transform:translateY(-2px);box-shadow:0 8px 24px rgba(59,130,246,.15)}
+        .password-strength{height:4px;border-radius:2px;transition:all 0.3s ease}
+        .strength-weak{background:rgb(var(--danger));width:25%}
+        .strength-fair{background:rgb(var(--warn));width:50%}
+        .strength-good{background:rgb(var(--accent));width:75%}
+        .strength-strong{background:rgb(var(--success));width:100%}
+        .benefit-card{transition:all 0.3s ease}
+        .benefit-card:hover{transform:translateY(-4px);box-shadow:0 12px 32px rgba(0,0,0,.1)}
+        @keyframes slideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
+        .slide-up{animation:slideUp 0.5s ease-out}
+    </style>
+</head>
+<body class="h-full bg-[rgb(var(--bg-1))] bg-gradient-to-br from-[rgb(var(--bg-1))] to-[rgb(var(--bg-2))] text-[rgb(var(--ink))] antialiased" style="font-family: Roboto, system-ui, -apple-system, Segoe UI, Helvetica, Arial;">
+<div class="min-h-screen flex items-center justify-center p-4">
+    <!-- Phone frame -->
+    <div id="frame" class="w-full max-w-sm h-[820px] md:h-[860px] rounded-[32px] bg-[rgb(var(--surface))] border border-white/40 elevate overflow-hidden relative">
+        <!-- Status spacer + camera hole -->
+        <div class="relative h-6">
+            <div class="absolute left-1/2 -translate-x-1/2 top-1 w-16 h-3 rounded-full bg-black/10"></div>
+        </div>
+
+        <!-- Header -->
+        <header class="px-5 pt-2 pb-3 sticky top-0 z-30 bg-[rgb(var(--surface))]/90 glass">
+            <div class="flex items-center justify-between">
+                <button id="backBtn" class="hidden p-2 rounded-full bg-[rgb(var(--card))] hover:opacity-90 animate-press ripple" onclick="goBack()">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+                </button>
+
+                <!-- Logo -->
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-2xl bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-700 shadow-md overflow-hidden">
+                        <svg class="w-full h-full p-1.5 text-white" viewBox="0 0 24 24" fill="none">
+                            <path d="M12 2L2 7V9H22V7L12 2Z" fill="currentColor" opacity="0.9"/>
+                            <path d="M8.5 11.5L10 10V10.5H14V10L15.5 11.5L14 13V12.5H10V13L8.5 11.5Z" fill="currentColor"/>
+                            <circle cx="6" cy="15.5" r="0.6" fill="currentColor" opacity="0.8"/>
+                            <circle cx="12" cy="15.5" r="0.6" fill="currentColor" opacity="0.8"/>
+                            <circle cx="18" cy="15.5" r="0.6" fill="currentColor" opacity="0.8"/>
+                        </svg>
+                        <div class="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent"></div>
+                    </div>
+                    <span class="font-semibold text-lg bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">UniSync</span>
+                </div>
+
+                <!-- Progress Steps -->
+                <div id="progressSteps" class="hidden flex items-center gap-1">
+                    <div id="step1" class="progress-step w-6 h-6 rounded-full bg-[rgb(var(--accent-2))] text-white text-xs grid place-items-center font-medium">1</div>
+                    <div class="w-3 h-0.5 bg-gray-200"></div>
+                    <div id="step2" class="progress-step w-6 h-6 rounded-full bg-gray-200 text-gray-500 text-xs grid place-items-center font-medium">2</div>
+                    <div class="w-3 h-0.5 bg-gray-200"></div>
+                    <div id="step3" class="progress-step w-6 h-6 rounded-full bg-gray-200 text-gray-500 text-xs grid place-items-center font-medium">3</div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main content -->
+        <main id="screen" class="px-5 pb-20 space-y-4 overflow-y-auto h-[calc(100%-120px)]">
+
+            <!-- Welcome Screen -->
+            <div id="welcomeScreen" class="space-y-6 fade-in">
+                <!-- Hero Section -->
+                <div class="text-center space-y-4 mt-6">
+                    <!-- Main Logo -->
+                    <div class="flex items-center justify-center mb-6">
+                        <div class="relative">
+                            <div class="w-20 h-20 rounded-3xl bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-700 shadow-2xl logo-glow relative overflow-hidden float">
+                                <svg class="w-full h-full p-4 text-white relative z-10" viewBox="0 0 24 24" fill="none">
+                                    <path d="M12 2L2 7V9H3V18H2V20H22V18H21V9H22V7L12 2Z" fill="currentColor" opacity="0.9"/>
+                                    <path d="M8.5 11.5L10 10V10.5H14V10L15.5 11.5L14 13V12.5H10V13L8.5 11.5Z" fill="currentColor"/>
+                                    <circle cx="6" cy="15.5" r="0.8" fill="currentColor" opacity="0.8"/>
+                                    <circle cx="12" cy="15.5" r="0.8" fill="currentColor" opacity="0.8"/>
+                                    <circle cx="18" cy="15.5" r="0.8" fill="currentColor" opacity="0.8"/>
+                                    <path d="M6.8 15.5H11.2M12.8 15.5H17.2" stroke="currentColor" stroke-width="0.5" opacity="0.6"/>
+                                </svg>
+                                <div class="absolute inset-0 rounded-3xl bg-gradient-to-tr from-white/30 via-white/10 to-transparent"></div>
+                            </div>
+                            <div class="absolute -inset-3 rounded-3xl bg-gradient-to-r from-blue-400/20 via-indigo-500/20 to-purple-500/20 blur-lg"></div>
+                        </div>
+                    </div>
+
+                    <!-- Hero Text -->
+                    <div class="space-y-3">
+                        <h1 class="text-3xl font-bold bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 bg-clip-text text-transparent leading-tight">
+                            Welcome to UniSync
+                        </h1>
+                        <p class="text-lg text-gray-600 font-medium">Smart Attendance Management</p>
+                        <p class="text-sm text-gray-500 leading-relaxed px-4">
+                            Revolutionizing university attendance tracking with seamless QR code technology and real-time synchronization
+                        </p>
+                    </div>
+
+                    <!-- Trust Indicators -->
+                    <div class="flex items-center justify-center gap-4 py-3">
+                        <div class="flex items-center gap-1 text-xs text-gray-500">
+                            <svg class="w-3 h-3 text-green-500" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 1L3 5V11C3 16.55 6.84 21.74 12 23C17.16 21.74 21 16.55 21 11V5L12 1ZM10 17L5 12L6.41 10.59L10 14.17L17.59 6.58L19 8L10 17Z"/>
+                            </svg>
+                            <span>Secure</span>
+                        </div>
+                        <div class="w-1 h-1 bg-gray-300 rounded-full"></div>
+                        <div class="flex items-center gap-1 text-xs text-gray-500">
+                            <svg class="w-3 h-3 text-blue-500" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                            </svg>
+                            <span>Trusted by 50+ Universities</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Key Benefits -->
+                <div class="space-y-4">
+                    <h3 class="text-lg font-semibold text-center text-gray-800">Why Choose UniSync?</h3>
+
+                    <div class="grid grid-cols-1 gap-4">
+                        <!-- Benefit 1 -->
+                        <div class="benefit-card bg-white rounded-2xl p-4 elevate">
+                            <div class="flex items-start gap-3">
+                                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center flex-shrink-0 pulse-slow">
+                                    <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M3,11H5V13H3V11M11,5H13V9H11V5M9,11H13V15H9V11M15,11H17V13H15V11M19,5H21V9H19V5M5,5H9V9H5V5M3,19H5V21H3V19M5,19H9V21H5V19M11,19H13V21H11V19M15,19H21V21H15V19M19,11H21V15H19V11M19,15H21V19H19V15Z"/>
+                                    </svg>
+                                </div>
+                                <div class="flex-1">
+                                    <h4 class="font-semibold text-gray-800">Instant QR Scanning</h4>
+                                    <p class="text-sm text-gray-600 mt-1">Quick and contactless attendance marking with advanced QR code technology</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Benefit 2 -->
+                        <div class="benefit-card bg-white rounded-2xl p-4 elevate">
+                            <div class="flex items-start gap-3">
+                                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-green-500 to-green-600 text-white flex items-center justify-center flex-shrink-0 pulse-slow">
+                                    <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/>
+                                    </svg>
+                                </div>
+                                <div class="flex-1">
+                                    <h4 class="font-semibold text-gray-800">Real-time Sync</h4>
+                                    <p class="text-sm text-gray-600 mt-1">Automatic synchronization across all devices with offline support</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Benefit 3 -->
+                        <div class="benefit-card bg-white rounded-2xl p-4 elevate">
+                            <div class="flex items-start gap-3">
+                                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 text-white flex items-center justify-center flex-shrink-0 pulse-slow">
+                                    <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
+                                    </svg>
+                                </div>
+                                <div class="flex-1">
+                                    <h4 class="font-semibold text-gray-800">Smart Analytics</h4>
+                                    <p class="text-sm text-gray-600 mt-1">Comprehensive reports and insights for better academic management</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- User Types Preview -->
+                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-3xl p-4 space-y-3">
+                    <h3 class="text-center font-semibold text-gray-800">Perfect for Everyone</h3>
+                    <div class="grid grid-cols-3 gap-3 text-center">
+                        <div class="space-y-2">
+                            <div class="w-10 h-10 rounded-xl bg-blue-500 text-white flex items-center justify-center mx-auto">
+                                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z"/>
+                                </svg>
+                            </div>
+                            <div class="text-xs font-medium text-gray-700">Students</div>
+                            <div class="text-xs text-gray-500">Track attendance</div>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="w-10 h-10 rounded-xl bg-green-500 text-white flex items-center justify-center mx-auto">
+                                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                                </svg>
+                            </div>
+                            <div class="text-xs font-medium text-gray-700">Lecturers</div>
+                            <div class="text-xs text-gray-500">Manage classes</div>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="w-10 h-10 rounded-xl bg-purple-500 text-white flex items-center justify-center mx-auto">
+                                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M19.14 12.94a1.5 1.5 0 000-1.88l1.38-1.07-1.5-2.6-1.7.35a5.53 5.53 0 00-1.6-.93l-.35-1.7h-3l-.35 1.7a5.53 5.53 0 00-1.6.93l-1.7-.35-1.5 2.6 1.38 1.07a1.5 1.5 0 000 1.88L4.27 14l1.5 2.6 1.7-.35c.47.4 1.02.72 1.6.93l.35 1.7h3l.35-1.7c.58-.21 1.13-.53 1.6-.93l1.7.35 1.5-2.6-1.38-1.06zM12 14.5A2.5 2.5 0 1114.5 12 2.5 2.5 0 0112 14.5z"/>
+                                </svg>
+                            </div>
+                            <div class="text-xs font-medium text-gray-700">Admins</div>
+                            <div class="text-xs text-gray-500">Full control</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CTA Buttons -->
+                <div class="space-y-3 pt-4">
+                    <button onclick="startSignUp()" class="w-full p-4 rounded-2xl bg-gradient-to-r from-[rgb(var(--accent))] to-[rgb(var(--accent-2))] text-white font-semibold animate-press ripple elevate">
+                        Get Started - It's Free
+                    </button>
+                    <button onclick="showLogin()" class="w-full p-4 rounded-2xl bg-white border border-gray-200 text-gray-700 font-medium animate-press ripple">
+                        Already have an account? Sign In
+                    </button>
+                </div>
+
+                <!-- Footer -->
+                <div class="text-center text-xs text-gray-500 space-y-1 pt-2">
+                    <div>Trusted by universities worldwide</div>
+                    <div class="flex items-center justify-center gap-4">
+                        <span>🔒 Secure</span>
+                        <span>⚡ Fast</span>
+                        <span>📱 Mobile-first</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 1: Role Selection -->
+            <div id="roleSelection" class="hidden space-y-6 slide-in-right">
+                <!-- Welcome Header -->
+                <div class="text-center space-y-2 mt-4">
+                    <h1 class="text-2xl font-bold text-gray-800">Choose Your Role</h1>
+                    <p class="text-gray-600">Select how you'll be using UniSync</p>
+                </div>
+
+                <!-- Role Cards -->
+                <div class="space-y-4">
+                    <!-- Student Card -->
+                    <div class="role-card bg-white rounded-3xl p-6 border-2 border-gray-100 cursor-pointer elevate" onclick="selectRole('student', this)">
+                        <div class="flex items-start gap-4">
+                            <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center flex-shrink-0">
+                                <svg class="w-7 h-7" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z"/>
+                                </svg>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="font-semibold text-lg text-gray-800">Student</h3>
+                                <p class="text-sm text-gray-600 mt-1">Access your class schedules, mark attendance, and track your academic progress</p>
+                                <div class="flex items-center gap-2 mt-3 text-xs text-blue-600">
+                                    <svg class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                                    </svg>
+                                    <span>QR Code Scanning</span>
+                                </div>
+                                <div class="flex items-center gap-2 mt-1 text-xs text-blue-600">
+                                    <svg class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                                    </svg>
+                                    <span>Attendance Tracking</span>
+                                </div>
+                            </div>
+                            <div class="w-5 h-5 rounded-full border-2 border-gray-300 flex items-center justify-center">
+                                <div class="w-2 h-2 rounded-full bg-blue-500 hidden"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lecturer Card -->
+                    <div class="role-card bg-white rounded-3xl p-6 border-2 border-gray-100 cursor-pointer elevate" onclick="selectRole('lecturer', this)">
+                        <div class="flex items-start gap-4">
+                            <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-green-500 to-green-600 text-white flex items-center justify-center flex-shrink-0">
+                                <svg class="w-7 h-7" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                                    <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
+                                </svg>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="font-semibold text-lg text-gray-800">Lecturer</h3>
+                                <p class="text-sm text-gray-600 mt-1">Manage your classes, generate QR codes, and monitor student attendance</p>
+                                <div class="flex items-center gap-2 mt-3 text-xs text-green-600">
+                                    <svg class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                                    </svg>
+                                    <span>Class Management</span>
+                                </div>
+                                <div class="flex items-center gap-2 mt-1 text-xs text-green-600">
+                                    <svg class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                                    </svg>
+                                    <span>Attendance Reports</span>
+                                </div>
+                            </div>
+                            <div class="w-5 h-5 rounded-full border-2 border-gray-300 flex items-center justify-center">
+                                <div class="w-2 h-2 rounded-full bg-green-500 hidden"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Admin Card -->
+                    <div class="role-card bg-white rounded-3xl p-6 border-2 border-gray-100 cursor-pointer elevate" onclick="selectRole('admin', this)">
+                        <div class="flex items-start gap-4">
+                            <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 text-white flex items-center justify-center flex-shrink-0">
+                                <svg class="w-7 h-7" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M19.14 12.94a1.5 1.5 0 000-1.88l1.38-1.07-1.5-2.6-1.7.35a5.53 5.53 0 00-1.6-.93l-.35-1.7h-3l-.35 1.7a5.53 5.53 0 00-1.6.93l-1.7-.35-1.5 2.6 1.38 1.07a1.5 1.5 0 000 1.88L4.27 14l1.5 2.6 1.7-.35c.47.4 1.02.72 1.6.93l.35 1.7h3l.35-1.7c.58-.21 1.13-.53 1.6-.93l1.7.35 1.5-2.6-1.38-1.06zM12 14.5A2.5 2.5 0 1114.5 12 2.5 2.5 0 0112 14.5z"/>
+                                </svg>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="font-semibold text-lg text-gray-800">Administrator</h3>
+                                <p class="text-sm text-gray-600 mt-1">Full system access, user management, and comprehensive analytics</p>
+                                <div class="flex items-center gap-2 mt-3 text-xs text-purple-600">
+                                    <svg class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                                    </svg>
+                                    <span>User Management</span>
+                                </div>
+                                <div class="flex items-center gap-2 mt-1 text-xs text-purple-600">
+                                    <svg class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                                    </svg>
+                                    <span>System Analytics</span>
+                                </div>
+                            </div>
+                            <div class="w-5 h-5 rounded-full border-2 border-gray-300 flex items-center justify-center">
+                                <div class="w-2 h-2 rounded-full bg-purple-500 hidden"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Continue Button -->
+                <button id="continueBtn" class="w-full p-4 rounded-2xl bg-gray-200 text-gray-500 font-semibold cursor-not-allowed" disabled>
+                    Select a role to continue
+                </button>
+            </div>
+
+            <!-- Step 2: Registration Form -->
+            <div id="registrationForm" class="hidden space-y-6 slide-in-right">
+                <!-- Form Header -->
+                <div class="text-center space-y-2 mt-4">
+                    <h1 id="formTitle" class="text-2xl font-bold text-gray-800">Student Registration</h1>
+                    <p id="formSubtitle" class="text-gray-600">Complete your profile to get started</p>
+                </div>
+
+                <!-- Dynamic Form Fields -->
+                <div id="formFields" class="space-y-4">
+                    <!-- Fields will be populated dynamically -->
+                </div>
+
+                <!-- Password Section -->
+                <div class="space-y-4">
+                    <div class="form-field bg-white rounded-2xl p-4 border border-gray-200">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                        <input type="password" id="password" class="w-full border-0 bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none" placeholder="Create a secure password" oninput="checkPasswordStrength()">
+                        <div class="mt-3">
+                            <div class="flex justify-between text-xs text-gray-500 mb-1">
+                                <span>Password strength</span>
+                                <span id="strengthText">Weak</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-1">
+                                <div id="strengthBar" class="password-strength strength-weak"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-field bg-white rounded-2xl p-4 border border-gray-200">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
+                        <input type="password" id="confirmPassword" class="w-full border-0 bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none" placeholder="Confirm your password" oninput="checkPasswordMatch()">
+                        <div id="passwordMatch" class="hidden mt-2 text-xs text-red-500">Passwords do not match</div>
+                    </div>
+                </div>
+
+                <!-- Terms and Conditions -->
+                <div class="bg-white rounded-2xl p-4 border border-gray-200">
+                    <label class="flex items-start gap-3 cursor-pointer">
+                        <input type="checkbox" id="termsCheckbox" class="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" onchange="toggleSubmitButton()">
+                        <div class="text-sm">
+                            <span class="text-gray-700">I agree to the </span>
+                            <button type="button" onclick="showTerms()" class="text-blue-600 underline">Terms of Service</button>
+                            <span class="text-gray-700"> and </span>
+                            <button type="button" onclick="showPrivacy()" class="text-blue-600 underline">Privacy Policy</button>
+                        </div>
+                    </label>
+                </div>
+
+                <!-- Submit Button -->
+                <button id="submitBtn" class="w-full p-4 rounded-2xl bg-gray-200 text-gray-500 font-semibold cursor-not-allowed animate-press ripple" disabled onclick="submitRegistration()">
+                    Create Account
+                </button>
+
+                <!-- Login Link -->
+                <div class="text-center">
+                    <span class="text-gray-600 text-sm">Already have an account? </span>
+                    <button onclick="showLogin()" class="text-blue-600 font-medium text-sm underline">Sign In</button>
+                </div>
+            </div>
+
+            <!-- Success Screen -->
+            <div id="successScreen" class="hidden text-center space-y-6 fade-in-up py-8">
+                <div class="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto">
+                    <svg class="w-10 h-10 text-green-600" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-2">Welcome to UniSync!</h2>
+                    <p class="text-gray-600 px-4">Your account has been created successfully. Check your email to verify your account and get started.</p>
+                </div>
+
+                <!-- Quick Start Tips -->
+                <div class="bg-blue-50 rounded-2xl p-4 text-left space-y-3">
+                    <h3 class="font-semibold text-gray-800 text-center">Quick Start Tips</h3>
+                    <div class="space-y-2 text-sm text-gray-600">
+                        <div class="flex items-center gap-2">
+                            <div class="w-5 h-5 rounded-full bg-blue-500 text-white text-xs flex items-center justify-center">1</div>
+                            <span>Verify your email address</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-5 h-5 rounded-full bg-blue-500 text-white text-xs flex items-center justify-center">2</div>
+                            <span>Complete your profile setup</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-5 h-5 rounded-full bg-blue-500 text-white text-xs flex items-center justify-center">3</div>
+                            <span>Start scanning QR codes for attendance</span>
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="goToDashboard()" class="w-full p-4 rounded-2xl bg-gradient-to-r from-[rgb(var(--accent))] to-[rgb(var(--accent-2))] text-white font-semibold animate-press ripple">
+                    Get Started
+                </button>
+            </div>
+        </main>
+
+        <!-- Terms Modal -->
+        <div id="termsModal" class="hidden absolute inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-3xl p-6 max-w-sm w-full max-h-[80%] overflow-y-auto slide-up">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-semibold text-lg">Terms of Service</h3>
+                    <button onclick="closeTerms()" class="p-2 rounded-full hover:bg-gray-100">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M6.225 4.811L4.811 6.225 10.586 12l-5.775 5.775 1.414 1.414L12 13.414l5.775 5.775 1.414-1.414L13.414 12l5.775-5.775-1.414-1.414L12 10.586 6.225 4.811z"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="text-sm text-gray-600 space-y-3">
+                    <p><strong>Welcome to UniSync!</strong> By using our platform, you agree to:</p>
+                    <ul class="list-disc list-inside space-y-1">
+                        <li>Use the platform for educational purposes only</li>
+                        <li>Maintain the security of your account credentials</li>
+                        <li>Report any technical issues or security concerns</li>
+                        <li>Comply with your institution's academic policies</li>
+                        <li>Respect other users' privacy and data</li>
+                    </ul>
+                    <p>The university reserves the right to monitor usage and ensure compliance with academic integrity standards.</p>
+                    <p><strong>Data Protection:</strong> We protect your personal information and only use it for attendance tracking and academic purposes.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast -->
+        <div id="toast" class="hidden absolute left-1/2 -translate-x-1/2 bottom-28 px-4 py-2 rounded-full text-white bg-[rgb(var(--accent-2))] elevate z-40">
+            Registration successful!
+        </div>
+    </div>
+</div>
+
+
+
+<script>
+    // ----- GLOBAL STATE -----
+    window.state = {
+      currentStep: 0,   // 0: welcome, 1: role selection, 2: registration, 3: success
+      selectedRole: null,
+      formData: {},
+      passwordStrength: 0
+    };
+
+    // ----- NAV / STEPS -----
+    function updateProgress(currentStep) {
+      const ids = ['step1','step2','step3'];
+      ids.forEach((id, i) => {
+        const el = document.getElementById(id);
+        const n = i + 1;
+        if (!el) return;
+        if (n < currentStep) {
+          el.className = 'progress-step w-6 h-6 rounded-full bg-[rgb(var(--success))] text-white text-xs grid place-items-center font-medium completed';
+          el.innerHTML = '<svg class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
+        } else if (n === currentStep) {
+          el.className = 'progress-step w-6 h-6 rounded-full bg-[rgb(var(--accent-2))] text-white text-xs grid place-items-center font-medium active';
+          el.textContent = n;
+        } else {
+          el.className = 'progress-step w-6 h-6 rounded-full bg-gray-200 text-gray-500 text-xs grid place-items-center font-medium';
+          el.textContent = n;
+        }
+      });
+    }
+
+    function showStep(step) {
+      // hide all
+      ['welcomeScreen','roleSelection','registrationForm','successScreen'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+      });
+
+      const backBtn = document.getElementById('backBtn');
+      const progressSteps = document.getElementById('progressSteps');
+
+      if (step === 0) {
+        if (backBtn) backBtn.classList.add('hidden');
+        if (progressSteps) progressSteps.classList.add('hidden');
+        document.getElementById('welcomeScreen').classList.remove('hidden');
+      } else {
+        if (backBtn) backBtn.classList.remove('hidden');
+        if (progressSteps) progressSteps.classList.remove('hidden');
+        updateProgress(step);
+
+        if (step === 1) document.getElementById('roleSelection').classList.remove('hidden');
+        if (step === 2) {
+          document.getElementById('registrationForm').classList.remove('hidden');
+          // build the dynamic form for the chosen role
+          setupForm();
+        }
+        if (step === 3) document.getElementById('successScreen').classList.remove('hidden');
+      }
+
+      state.currentStep = step;
+    }
+    window.showStep = showStep;
+
+    function startSignUp() { showStep(1); }
+    window.startSignUp = startSignUp;
+
+    function goBack() {
+      if (state.currentStep > 0) showStep(state.currentStep - 1);
+    }
+    window.goBack = goBack;
+
+    function showLogin() {
+      showToast('Signing you in...');
+      // Simulate sign-in → go straight to chosen portal (or ask for role if none yet)
+      setTimeout(goToPortal, 700);
+    }
+    window.showLogin = showLogin;
+
+    // ----- ROLE SELECTION -----
+    function selectRole(role, el) {
+      state.selectedRole = role;
+      localStorage.setItem('unisync_role', role);
+
+      // visual selection
+      document.querySelectorAll('.role-card').forEach(card => {
+        card.classList.remove('selected');
+        const dot = card.querySelector('.w-2');
+        if (dot) dot.classList.add('hidden');
+      });
+      if (el) {
+        el.classList.add('selected');
+        const dot = el.querySelector('.w-2');
+        if (dot) dot.classList.remove('hidden');
+      }
+
+      // enable continue
+      const btn = document.getElementById('continueBtn');
+      if (btn) {
+        btn.disabled = false;
+        btn.className = 'w-full p-4 rounded-2xl bg-gradient-to-r from-[rgb(var(--accent))] to-[rgb(var(--accent-2))] text-white font-semibold animate-press ripple cursor-pointer';
+        btn.textContent = 'Continue to Registration';
+        btn.onclick = () => showStep(2);
+      }
+    }
+    window.selectRole = selectRole;
+
+    // ----- FORM (dynamic per role) -----
+    function setupForm() {
+      const formTitle = document.getElementById('formTitle');
+      const formSubtitle = document.getElementById('formSubtitle');
+      const formFields = document.getElementById('formFields');
+      const role = state.selectedRole || localStorage.getItem('unisync_role') || 'student';
+
+      let fields = [];
+      if (role === 'student') {
+        formTitle.textContent = 'Student Registration';
+        formSubtitle.textContent = 'Complete your student profile';
+        fields = [
+          { label: 'Full Name', type: 'text', placeholder: 'Enter your full name', required: true },
+          { label: 'Student ID', type: 'text', placeholder: 'e.g., CS2021001', required: true },
+          { label: 'Academic Email', type: 'email', placeholder: 'your.name@student.ac.za', required: true },
+          { label: 'Department', type: 'select', options: ['Computer Science','Engineering','Business','Medicine','Arts'], required: true },
+          { label: 'Year of Study', type: 'select', options: ['1st Year','2nd Year','3rd Year','4th Year','Postgraduate'], required: true },
+          { label: 'Phone Number', type: 'tel', placeholder: '+27 XX XXX XXXX', required: false }
+        ];
+      } else if (role === 'lecturer') {
+        formTitle.textContent = 'Lecturer Registration';
+        formSubtitle.textContent = 'Complete your lecturer profile';
+        fields = [
+          { label: 'Full Name', type: 'text', placeholder: 'Dr./Prof. Full Name', required: true },
+          { label: 'Staff ID', type: 'text', placeholder: 'e.g., STAFF001', required: true },
+          { label: 'Academic Email', type: 'email', placeholder: 'your.name@university.ac.za', required: true },
+          { label: 'Department', type: 'select', options: ['Computer Science','Engineering','Business','Medicine','Arts'], required: true },
+          { label: 'Office Location', type: 'text', placeholder: 'e.g., Building A, Room 201', required: true },
+          { label: 'Phone Number', type: 'tel', placeholder: '+27 XX XXX XXXX', required: false }
+        ];
+      } else { // admin
+        formTitle.textContent = 'Administrator Registration';
+        formSubtitle.textContent = 'Complete your admin profile';
+        fields = [
+          { label: 'Full Name', type: 'text', placeholder: 'Enter your full name', required: true },
+          { label: 'Admin ID', type: 'text', placeholder: 'e.g., ADMIN001', required: true },
+          { label: 'System Email', type: 'email', placeholder: 'admin@university.ac.za', required: true },
+          { label: 'Department', type: 'select', options: ['IT Services','Academic Affairs','Student Services','Administration'], required: true },
+          { label: 'Access Level', type: 'select', options: ['Super Admin','Department Admin','System Admin'], required: true },
+          { label: 'Phone Number', type: 'tel', placeholder: '+27 XX XXX XXXX', required: false }
+        ];
+      }
+
+      formFields.innerHTML = fields.map(field => {
+        if (field.type === 'select') {
+          return `
+            <div class="form-field bg-white rounded-2xl p-4 border border-gray-200">
+              <label class="block text-sm font-medium text-gray-700 mb-2">${field.label} ${field.required ? '*' : ''}</label>
+              <select class="w-full border-0 bg-transparent text-gray-800 focus:outline-none" ${field.required ? 'required' : ''}>
+                <option value="">Select ${field.label.toLowerCase()}</option>
+                ${field.options.map(o => `<option value="${o}">${o}</option>`).join('')}
+              </select>
+            </div>
+          `;
+        }
+        return `
+          <div class="form-field bg-white rounded-2xl p-4 border border-gray-200">
+            <label class="block text-sm font-medium text-gray-700 mb-2">${field.label} ${field.required ? '*' : ''}</label>
+            <input type="${field.type}" class="w-full border-0 bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none" placeholder="${field.placeholder}" ${field.required ? 'required' : ''}>
+          </div>
+        `;
+      }).join('');
+    }
+    window.setupForm = setupForm;
+
+    // ----- PASSWORDS / VALIDATION -----
+    function checkPasswordStrength() {
+      const password = document.getElementById('password').value;
+      const strengthBar = document.getElementById('strengthBar');
+      const strengthText = document.getElementById('strengthText');
+
+      let s = 0;
+      if (password.length >= 8) s++;
+      if (/[A-Z]/.test(password)) s++;
+      if (/[a-z]/.test(password)) s++;
+      if (/[0-9]/.test(password)) s++;
+      if (/[^A-Za-z0-9]/.test(password)) s++;
+
+      let text = 'Weak', cls = 'strength-weak';
+      if (s === 2) { text = 'Fair'; cls = 'strength-fair'; }
+      if (s === 3 || s === 4) { text = 'Good'; cls = 'strength-good'; }
+      if (s === 5) { text = 'Strong'; cls = 'strength-strong'; }
+
+      state.passwordStrength = s;
+      strengthBar.className = `password-strength ${cls}`;
+      strengthText.textContent = text;
+
+      checkPasswordMatch();
+      toggleSubmitButton();
+    }
+    window.checkPasswordStrength = checkPasswordStrength;
+
+    function checkPasswordMatch() {
+      const p1 = document.getElementById('password').value;
+      const p2 = document.getElementById('confirmPassword').value;
+      const matchDiv = document.getElementById('passwordMatch');
+      if (p2 && p1 !== p2) matchDiv.classList.remove('hidden');
+      else matchDiv.classList.add('hidden');
+      toggleSubmitButton();
+    }
+    window.checkPasswordMatch = checkPasswordMatch;
+
+    function toggleSubmitButton() {
+      const terms = document.getElementById('termsCheckbox').checked;
+      const p1 = document.getElementById('password').value;
+      const p2 = document.getElementById('confirmPassword').value;
+      const submitBtn = document.getElementById('submitBtn');
+
+      const ok = terms && p1 && p2 && p1 === p2 && state.passwordStrength >= 2;
+      if (ok) {
+        submitBtn.disabled = false;
+        submitBtn.className = 'w-full p-4 rounded-2xl bg-gradient-to-r from-[rgb(var(--accent))] to-[rgb(var(--accent-2))] text-white font-semibold animate-press ripple cursor-pointer';
+      } else {
+        submitBtn.disabled = true;
+        submitBtn.className = 'w-full p-4 rounded-2xl bg-gray-200 text-gray-500 font-semibold cursor-not-allowed';
+      }
+    }
+    window.toggleSubmitButton = toggleSubmitButton;
+
+    // ----- MODALS -----
+    function showTerms(){ document.getElementById('termsModal').classList.remove('hidden'); }
+    function closeTerms(){ document.getElementById('termsModal').classList.add('hidden'); }
+    function showPrivacy(){ showToast('Privacy Policy opened'); }
+    window.showTerms = showTerms;
+    window.closeTerms = closeTerms;
+    window.showPrivacy = showPrivacy;
+
+    // ----- SUBMIT / NAVIGATION -----
+    function submitRegistration() {
+      const btn = document.getElementById('submitBtn');
+      btn.innerHTML = '<svg class="w-5 h-5 animate-spin mx-auto" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4V2A10 10 0 0 0 2 12h2a8 8 0 0 1 8-8z"/></svg>';
+      btn.disabled = true;
+
+      setTimeout(() => {
+        showToast('Registration successful!');
+        setTimeout(() => {
+          // go straight to the right portal
+          goToPortal();
+          // If you prefer to show success screen first, comment the line above and use:
+          // showStep(3);
+        }, 800);
+      }, 1200);
+    }
+    window.submitRegistration = submitRegistration;
+
+    function goToPortal() {
+      const role = state.selectedRole || localStorage.getItem('unisync_role') || 'student';
+      const map = { student: 'student.html', lecturer: 'lecturer.html', admin: 'admin.html' };
+      const target = map[role] || 'student.html';
+      window.location.href = target;  // works in file:///android_asset/ WebView
+    }
+    window.goToPortal = goToPortal;
+
+    function goToDashboard() {
+      // from success screen's button
+      goToPortal();
+    }
+    window.goToDashboard = goToDashboard;
+
+    // ----- TOAST -----
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), 3000);
+    }
+    window.showToast = showToast;
+
+    // ----- INIT -----
+    (function init() {
+      // start at welcome
+      showStep(0);
+    })();
+</script>
+
+
+
+</body>
+</html>
