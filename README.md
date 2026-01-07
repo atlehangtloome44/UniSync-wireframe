@@ -1,4 +1,4 @@
-**UniSync** is a mobile application designed to centralize key university operations for students, lecturers, and administrators.  
+**UniSync** is a mobile application wireframe designed to centralize key university operations for students, lecturers, and administrators.  
 It connects users in a unified digital environment, offering streamlined access to timetables, announcements, assignments, attendance tracking, and campus networking — all in one platform.
 
 ## Key Features
